@@ -680,15 +680,17 @@ const getCountries = async ()=>{
         console.error("\u041F\u043E\u043C\u0438\u043B\u043A\u0430 \u043F\u0440\u0438 \u043E\u0442\u0440\u0438\u043C\u0430\u043D\u043D\u0456 \u043A\u0440\u0430\u0457\u043D", error);
     }
 };
-const findCountryByName = async ()=>{};
 const renderCountries = async ()=>{
     const countriesContainer = document.querySelector(".countries__list");
     const countries = await getCountries();
     let html = "";
     countries.map((country)=>{
         html += `<li class="countries__item country">
+          <div class='country__img-container'>
+            <img src='${country.flags.png}' alt='' />
+          </div>
             <h2 class="country__title">${country.name.common}</h2>
-            <p class="country__population">${country.population}</p>
+            <p class="country__population">\u{41D}\u{430}\u{441}\u{435}\u{43B}\u{435}\u{43D}\u{43D}\u{44F}: ${country.population}</p>
             <p class="country__borders"> ${!country.borders ? "\u043D\u0435\u043C\u0430\u0454 \u0441\u0443\u0445\u043E\u043F\u0443\u0442\u043D\u0438\u0445 \u043A\u043E\u0440\u0434\u043E\u043D\u0456\u0432" : country.borders.join(", ")}</p>
         </li>`;
     });
@@ -699,13 +701,39 @@ const events = ()=>{
     const cards = document.querySelectorAll(".country");
     console.log(cards);
     cards.forEach((card)=>{
-        card.addEventListener("click", async (event)=>{
-            const data = await getCountries();
-            const countryName = event.target.querySelector(".country__title");
-            const instance = _basiclightbox.create(`<h1>modal</h1>`);
-            instance.show();
+        card.addEventListener("click", async ()=>{
+            const countryName = card.querySelector(".country__title").textContent;
+            const response = await fetch(`https://restcountries.com/v3.1/name/${countryName}`);
+            if (!response.ok) throw new Error("\u043F\u043E\u043C\u0438\u043B\u043A\u0430 \u043F\u0440\u0438 \u0444\u0435\u0442\u0447\u0456", response.status);
+            const data = await response.json();
+            const country = data[0];
+            let html = "";
+            if (country.borders) {
+                const bordersData = await Promise.all(country.borders.map(async (border)=>{
+                    const response = await fetch(`https://restcountries.com/v3.1/alpha/${border}`);
+                    if (!response.ok) throw new Error("\u043F\u043E\u043C\u0438\u043B\u043A\u0430 \u043F\u0440\u0438 \u0444\u0435\u0442\u0447\u0456", response.status);
+                    const data = await response.json();
+                    return data[0];
+                }));
+                html = bordersData.map((borderCountry)=>`
+              <li>
+                <div class="img__container">
+                  <img src="${borderCountry.flags.svg}" alt="${borderCountry.name.official}" class="border__country-img" />
+                </div>
+                            
+              <div class='border__country-container'>
+                <h2 class="border__country-name">${borderCountry.name.official}</h2>
+                <p class="border__country-population">\u{41D}\u{430}\u{441}\u{435}\u{43B}\u{435}\u{43D}\u{43D}\u{44F}: ${borderCountry.population}</p>
+              </div>
+
+              </li>
+            `).join("");
+                const instance = _basiclightbox.create(`<ul>
+          <li class='border__country--title'><h2 class='border__country-title'>\u{421}\u{443}\u{441}\u{456}\u{434}\u{43D}\u{456} \u{43A}\u{440}\u{430}\u{457}\u{43D}\u{438} \u{434}\u{43B}\u{44F} ${countryName}</h2></li>
+          ${html}</ul>`);
+                instance.show();
+            }
         });
-        console.log("event");
     });
 };
 const app = ()=>{
